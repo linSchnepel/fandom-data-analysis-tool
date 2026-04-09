@@ -1,0 +1,30 @@
+{
+  "name": "fandom-data-analysis-tool",
+  "version": "1.0.0",
+  "description": "Tool for data research concerning the online fandom archive AO3",
+  "homepage": "https://github.com/linSchnepel/fandom-data-analysis-tool#readme",
+  "bugs": {
+    "url": "https://github.com/linSchnepel/fandom-data-analysis-tool/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/linSchnepel/fandom-data-analysis-tool.git"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "E. Lin Schnepel",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "axios": "^1.15.0",
+    "axios-cookiejar-support": "^6.0.5",
+    "cheerio": "^1.2.0",
+    "dotenv": "^17.4.1",
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7",
+    "tough-cookie": "^6.0.1",
+    "url": "^0.11.4"
+  }
+}
