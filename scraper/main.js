@@ -4,6 +4,7 @@ dotenv.config();
 import { login } from './essential.js';
 
 import { getListings } from './mode/listing.js';
+import { cleanData } from './mode/clean.js';
 
 const LOG_IN_TRUE = (process.env.LOG_IN_TRUE === 'true');
 

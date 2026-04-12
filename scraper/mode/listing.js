@@ -1,3 +1,5 @@
+// Scrapes the listing pages of AO3, along with history
+
 import fs from 'fs'; // For synchronous methods (like existsSync)
 import { fileURLToPath } from 'url';
 import path from 'path';
