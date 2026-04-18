@@ -43,7 +43,7 @@ export async function cleanData(fileNames) {
 
             for await (const line of rl) {
                 if (line.trim()) {
-                    writeStream.write(line + '\n');
+                    await writeStream.write(line + '\n');
                 }
             }
 
@@ -73,12 +73,12 @@ export async function cleanData(fileNames) {
                 if (record.id !== undefined) {
                     if (!seenIds.has(record.id)) {
                         seenIds.add(record.id);
-                        tempStream.write(line + '\n');
+                        await tempStream.write(line + '\n');
                     }
                     // else: duplicate. Sskip it
                 } else {
                     // No id field. Keep it unconditionally
-                    tempStream.write(line + '\n');
+                    await tempStream.write(line + '\n');
                 }
             } catch {
                 console.warn('Skipping malformed line:', line);
