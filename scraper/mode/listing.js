@@ -10,46 +10,6 @@ import { delay, loadPage } from '../essential.js';
 // TODO: Reduce duplicate consts
 const TIMER = 5000;
 
-// Must always return the shape: { history: null, historyUNIX: null }
-async function scrapeHistory(workId) {
-    console.time(`- gathering history... (${workId})`);
-    const url = `https://archiveofourown.org/works/${workId}/navigate`;
-
-    try {
-        let $ = await loadPage(url);
-
-        if (!$) {
-            console.timeEnd(`- gathering history... (${workId})`);
-            return { history: null, historyUNIX: null };
-        } else {
-            const history = [];
-            const historyUNIX = [];
-
-            const elemsHistory = $('ol.chapter.index.group li a').toArray();
-            for (const elem of elemsHistory) {
-                const dateText = $(elem).next('span.datetime').text().trim(); // e.g. (YYYY-MM-DD)
-                const dateSanitized = dateText.replace(/[()]/g, '');
-                history.push(dateSanitized);
-
-                const dateObj = new Date(dateSanitized);
-                historyUNIX.push(!isNaN(dateObj) ? dateObj.getTime() : null);
-            }
-
-            console.timeEnd(`- gathering history... (${workId})`);
-            return { history, historyUNIX };
-        }
-    } catch (error) {
-        if (error instanceof NotFoundError) {
-            console.warn(`Skipping ${url}: page not found.`);
-            return [];
-        } else if (!(error instanceof SSLError)) {
-            console.error('Error scraping history:', error.message);
-            console.error(`Page attempted to access: ${url}`);
-            return { history: null, historyUNIX: null };
-        }
-    }
-}
-
 // Parse stats into an object
 function getStats($, element) {
     const stats = {};
@@ -145,18 +105,10 @@ async function scrapeWorks(url) {
 
             // Get stats (bottom line)
             const stats = getStats($, $elem);
-            const isMultiChaptered = (stats && stats.Chapters && stats.Chapters != "1/1" && stats.Chapters != "1/?");
+            const isMultiChaptered = (stats && stats.Chapters && stats.Chapters != "1/?" && !stats.Chapters.match(/1\/\d/));
 
-            // Get history in a patient manner
+            // Get temp history. In-depth history has been moved.
             let chapterData = { history: null, historyUNIX: null };
-            let workHistoryPatient;
-            let workHistoryPromise;
-
-            // If there is more than 1 chapter, then we get history of all chapters
-            if (isMultiChaptered) {
-                workHistoryPatient = delay(TIMER);
-                workHistoryPromise = scrapeHistory(workId);
-            }
 
             // Get most recent update
             const updateEl = $elem.find('p.datetime').first();
@@ -199,21 +151,6 @@ async function scrapeWorks(url) {
 
                 if (tagText) {
                     tags.push(tagText);
-                }
-            }
-
-            // Consolidate the promises
-            if (isMultiChaptered) {
-                await workHistoryPatient;
-
-                try {
-                    chapterData = await workHistoryPromise;
-                } catch (error) {
-                    if (error instanceof NotFoundError) {
-                        console.error(`History not found for work ${workId}. Skipped.`);
-                        chapterData = { history: null, historyUNIX: null };
-                    }
-                    // Anything else will propagate up to scrapeWorks
                 }
             }
             
@@ -273,9 +210,8 @@ export async function getListings(fileNames, startPage = 1) {
             const works = await scrapeWorks(process.env.AO3_URL + i);
             if (!works || works.length === 0) {
                 // Page returns no works
-                console.warn('Scraper ended before the page limit due to lack of works.')
-                console.timeEnd("Parsing cost");
-                break;
+                console.warn('Lack of works before the page limit.')
+                i = PAGE_LIMIT;
             } else if (works && works.length < 20) {
                 // If PAGE_LIMIT is accurate, then this is redundant
                 console.warn('This is the last page of works.')
@@ -287,7 +223,7 @@ export async function getListings(fileNames, startPage = 1) {
 
             // Write each work as a separate line. No need to read existing data
             for (const work of works) {
-                stream.write(JSON.stringify(work) + '\n');
+                await stream.write(JSON.stringify(work) + '\n');
             }
 
             console.info(`Added ${works.length} new works to chunk ${chunkIndex}`);
