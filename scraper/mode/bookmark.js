@@ -59,7 +59,6 @@ async function process(record) {
                 } else {
                     // Parse bookmark users and their collections/tags
                     $('li.user.short.blurb.group').each((i, el) => {
-                        const username = $(el).find('.header.module h5.byline.heading a').text().trim();
 
                         const bookmarkDate = $(el).find('.header.module p.datetime').text().trim().replace(/[()]/g, '');
                         const dateObj = new Date(bookmarkDate);
@@ -77,20 +76,12 @@ async function process(record) {
                             tags.push($(tag).text().trim());
                         });
 
-                        // Extract notes text (may contain multiple paragraphs, join with newline)
-                        let notes = [];
-                        $(el).find('h6.landmark.heading:contains("Bookmark Notes:")').next('blockquote.userstuff.summary').find('p').each((i, p) => {
-                            notes.push($(p).text().trim());
-                        });
-                        const notesText = notes.join('\n');
 
                         bookmarksArray.push({
-                            username,
                             bookmarkDate,
                             bookmarkDateUNIX,
                             collections,
                             tags,
-                            notes: notesText,
                         });
                     });
 
