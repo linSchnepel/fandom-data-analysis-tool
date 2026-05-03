@@ -1,6 +1,5 @@
 // All files in [mode] use these functions
 
-import axios from "axios"
 import * as cheerio from 'cheerio'; // Parsing and manipulating HTML
 
 import fs from 'fs';
@@ -9,7 +8,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 
 import { NotFoundError, SSLError } from './error.js';
-import { client } from './client.js';
+import { ImpitGet, ImpitPost } from './client.js';
 
 const LOG_IN_TRUE = (process.env.LOG_IN_TRUE === 'true');
 
@@ -152,28 +151,19 @@ export async function writingData(destFileName, sourceFileName, newFileName) {
     console.info(`writingData: merged ${recordMap.size} records into ${writtenPath}`);
 }
 
+// Comments cannot be obtained through standard URL approach
 export async function loadPageComments(workID, page) {
     for (let i = 1; i <= MAX_RETRIES; i++) {
         try {
-            const { data } = LOG_IN_TRUE
-                ? await client.get(
-                    'https://archiveofourown.org/comments/show_comments',
-                    {
-                        params: { page: page, work_id: workID },
-                        headers: JS_HEADERS,
-                        maxRedirects: 0, // don't follow redirects
-                        validateStatus: s => s < 400,
-                    }
-                )
-                : await axios.get(
-                    'https://archiveofourown.org/comments/show_comments',
-                    {
-                        params: { page: page, work_id: workID },
-                        headers: JS_HEADERS,
-                        maxRedirects: 0, // don't follow redirects
-                        validateStatus: s => s < 400,
-                    }
-                );
+            const { data } = await ImpitGet(
+                'https://archiveofourown.org/comments/show_comments',
+                {
+                    params: { page: page, work_id: workID },
+                    headers: JS_HEADERS,
+                    redirect: 'error',
+                    validateStatus: s => s < 300,
+                }
+            );
 
             // Extract all .append() and .html() string arguments and join them
             const chunks = [];
@@ -232,10 +222,7 @@ export async function loadPageComments(workID, page) {
 export async function loadPage(url) {
     for (let i = 1; i <= MAX_RETRIES; i++) {
         try {
-            // TODO: Remove this IF getting rate limited and after increasing the TIMER
-            const { data } = LOG_IN_TRUE
-                ? await client.get(url, { headers: HTML_HEADERS })
-                : await axios.get(url, { headers: HTML_HEADERS });
+            const { data } = await ImpitGet(url, { headers: HTML_HEADERS, redirect: 'follow' });
 
             return cheerio.load(data); // Success, return immediately
         } catch (error) {
@@ -289,7 +276,8 @@ export async function login() {
             loginData.append('authenticity_token', authenticityToken);
             loginData.append('commit', 'Log in');
 
-            const response = await client.post(loginUrl, loginData.toString(), { headers: FORM_HEADERS });
+            await delay(TIMER);
+            const response = await ImpitPost(loginUrl, loginData.toString(), { headers: FORM_HEADERS });
 
             console.timeEnd("logging in");
 
