@@ -19,25 +19,20 @@ At present, this program collects metadata such as tags, fandoms, timestamps, an
 
 ## How to use
 
-At the time of writing, this project is a simple Node.js script that outputs data in JSONL format.
+This project is a simple Node.js script that outputs data in JSONL format.
 
-Scraping begins from acquiring a partial URL of page listings for a selected fandom and follows links to individual works as needed. Some works are restricted and may only be accessible to logged-in users.
+Scraping begins from acquiring a partial URL of page listings for a selected fandom and processing the given HTML. Some works are restricted and may only be accessible to logged-in users. Initial Listing data may be cleaned, which can then be used to collect related Kudos, Comments, Bookmarks, and Histories data.
 
-The script uses a simple single-threaded workflow: load a page, extract data, wait, then move to the next page. This is intentional and helps reduce load on AO3 by keeping requests slow and predictable. AO3 states that it uses technical measures such as rate limiting to hinder large-scale scraping, so this project is designed for small, research-focused datasets rather than high-volume collection.
+The script uses a single-threaded workflow: load a page, extract data, wait, then move to the next page. This is intentional and helps reduce load on AO3 by keeping requests slow and predictable. AO3 states that it uses technical measures such as rate limiting to hinder large-scale scraping, so this project is designed for small, research-focused datasets rather than high-volume collection.
 
 ### Variables required
 
 ```txt
-PAGE_LIMIT
 AO3_URL=[https://archiveofourown.org/works?work_search...&page=]
 LOG_IN_TRUE=false
 LOGIN_USERNAME=[optional]
 LOGIN_PASSWORD=[optional]
 ```
 
-## Future improvements
-
-- Move classes, functions, and data structures into separate files.
-- Add functions to collect additional metadata such as kudos, comments, and bookmarks where appropriate.
-- Integrate browser automation tools such as Playwright for more reliable page handling.
-- Create a Python notebook or script for visualizing and statistically analyzing collected data.
+## Associated Works
+The output data from this project is used for the visual [AoAnalysis](https://github.com/linSchnepel/AoAnalysis)

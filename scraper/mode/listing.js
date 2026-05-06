@@ -6,9 +6,7 @@ import path from 'path';
 
 import { NotFoundError, SSLError } from '../error.js';
 import { delay, loadPage } from '../essential.js';
-
-// TODO: Reduce duplicate consts
-const TIMER = 5000;
+import { TIMER } from "../constants.js";
 
 // Parse stats into an object
 function getStats($, element) {
@@ -71,20 +69,7 @@ function getSquareData($, elements) {
     return { rating, warnings, category, completion };
 }
 
-// Load a page of 20 works, return a list of works
-async function scrapeWorks(url) {
-    console.time(`- parsing listing page...`);
-    let $;
-
-    try {
-        $ = await loadPage(url);
-    } catch (error) {
-        if (error instanceof NotFoundError) {
-            console.warn(`Skipping ${url}: page not found.`);
-            return [];
-        }
-    }
-
+async function getListing($) {
     // Touched, thus give Ao3 a rest
     await delay(TIMER);
 
@@ -175,7 +160,73 @@ async function scrapeWorks(url) {
     }
 }
 
-// Requires process.env
+// Load a page of 20 works, return a list of works
+async function scrapeWorks(url) {
+    console.time(`- parsing listing page...`);
+    let $;
+
+    try {
+        $ = await loadPage(url);
+    } catch (error) {
+        if (error instanceof NotFoundError) {
+            console.warn(`Skipping ${url}: page not found.`);
+            return [];
+        }
+    }
+
+    return await getListing($);
+}
+
+function getPageLimit($) {
+    const pagination = $('ol.pagination.actions.pagy');
+
+    if (!pagination.length) {
+        return 1; // No pagination means only 1 page exists
+    }
+
+    // Find the last <a> *before* the .next li
+    const lastPageLink = pagination
+        .find('li:not(.next) a')  // ignore the Next button
+        .last();                  // take the last remaining link
+
+    if (!lastPageLink.length) {
+        return 1;
+    }
+
+    // Use the text content (e.g. "5000")
+    const textNumber = parseInt(lastPageLink.text().trim(), 10);
+
+    if (!Number.isNaN(textNumber)) {
+        return textNumber;
+    } else {
+        // Fallback to parsing the href query (?page=5000)
+        const href = lastPageLink.attr('href') || '';
+        const match = href.match(/[?&]page=(\d+)/);
+
+        if (match) {
+            return parseInt(match[1], 10);
+        }
+    }
+
+    throw new Error('Could not parse page limit from pagination');
+}
+
+async function extractPageLimitFromFirstPage(url) {
+    console.time(`- parsing listing page...`);
+    let $;
+
+    try {
+        $ = await loadPage(url);
+    } catch (error) {
+        if (error instanceof NotFoundError) {
+            console.warn(`Skipping ${url}: page not found.`);
+            return [];
+        }
+    }
+
+    return { PAGE_LIMIT: await getPageLimit($), firstPageWorks: await getListing($) };
+}
+
 // Goes through a number of listing pages, which are scraped and parsed
 export async function getListings(fileNames, startPage = 1) {
     // Pre-open a write stream per chunk, reuse across pages
@@ -198,16 +249,16 @@ export async function getListings(fileNames, startPage = 1) {
     };
 
     try {
-        const PAGE_LIMIT = parseInt(process.env.PAGE_LIMIT, 10);
-        if (isNaN(PAGE_LIMIT)) {
-            throw new Error('PAGE_LIMIT not set or invalid in .env. Identified limit: ' + process.env.PAGE_LIMIT);
-        }
+        const firstPageNumber = startPage;
+        const firstPageUrl = process.env.AO3_URL + firstPageNumber;
+        const {PAGE_LIMIT, firstPageWorks} = await extractPageLimitFromFirstPage(firstPageUrl);
+        console.log(`Determined page limit: ${PAGE_LIMIT}`);
 
         for (let i = startPage; i <= PAGE_LIMIT; i++) {
             console.info(`We are on page: ${i}/${PAGE_LIMIT} ( ${(i / PAGE_LIMIT) * 100}% )`);
             console.time("Parsing cost");
 
-            const works = await scrapeWorks(process.env.AO3_URL + i);
+            const works = (i == firstPageNumber) ? firstPageWorks : await scrapeWorks(process.env.AO3_URL + i);
             if (!works || works.length === 0) {
                 // Page returns no works
                 console.warn('Lack of works before the page limit.')

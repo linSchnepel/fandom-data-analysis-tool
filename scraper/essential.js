@@ -9,11 +9,9 @@ import path from 'path';
 
 import { NotFoundError, SSLError } from './error.js';
 import { ImpitGet, ImpitPost } from './client.js';
+import { TIMER, MAX_RETRIES } from "./constants.js";
 
 const LOG_IN_TRUE = (process.env.LOG_IN_TRUE === 'true');
-
-const MAX_RETRIES = 20;
-const TIMER = 5000;
 
 const BASE_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (compatible; ao3-map-bot/1.0; statistical analysis; +https://github.com/linSchnepel/fandom-data-analysis-tool)',

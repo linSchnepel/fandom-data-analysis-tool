@@ -2,8 +2,7 @@
 
 import { NotFoundError, SSLError } from '../error.js';
 import { delay, loadPage, readingData, writingData, saveData } from '../essential.js';
-
-const TIMER = 5000;
+import { TIMER } from "../constants.js";
 
 export async function getHistories(fileName) {
     console.time(`Parsing cost History`);

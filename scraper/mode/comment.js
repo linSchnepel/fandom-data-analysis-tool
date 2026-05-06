@@ -4,8 +4,7 @@
 
 import { NotFoundError, SSLError } from '../error.js';
 import { delay, readingData, writingData, saveData, loadPageComments } from '../essential.js';
-
-const TIMER = 5000;
+import { TIMER } from "../constants.js";
 
 export async function getComments(fileName) {
     console.time(`Parsing cost Comments`);

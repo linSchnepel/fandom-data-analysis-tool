@@ -2,8 +2,7 @@
 
 import { NotFoundError, SSLError } from '../error.js';
 import { delay, loadPage, readingData, writingData, saveData } from '../essential.js';
-
-const TIMER = 5000;
+import { TIMER } from "../constants.js";
 
 // Reads fileName_CLEAN.jsonl, processes records with Kudos,
 // batches every 20 into _KUDOS.jsonl, then merges into _withKudos.jsonl
