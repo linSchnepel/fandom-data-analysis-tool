@@ -140,7 +140,7 @@ export async function writingData(destFileName, sourceFileName, newFileName) {
         }
     }
 
-    // Write to new newFileName file
+    // Write to new file
     const writeStream = fs.createWriteStream(writtenPath, { flags: 'w', encoding: 'utf8' });
     for (const record of recordMap.values()) {
         writeStream.write(JSON.stringify(record) + '\n');
@@ -197,19 +197,19 @@ export async function loadPageComments(workID, page) {
             if (error.response && error.response.status === 525) {
                 if (i < MAX_RETRIES) {
                     console.warn(`Encountered 525 error on attempt ${i}. This is an SSL handshake issue. Retrying...`);
-                    await delay(TIMER * i);
+                    await delay(TIMER * i * 5);
                 }
             } else if (error.response && error.response.status === 429) {
                 if (i < MAX_RETRIES) {
                     console.warn(`Encountered 429 error on attempt ${i}. This is a rate limit. Backing off...`);
-                    await delay(TIMER * i * 5); // Heavier backoff
+                    await delay(TIMER * i * 10); // Heavier backoff
                 }
             } else if (error.response && error.response.status === 404) {
                 throw new NotFoundError(url);
             } else {
                 // Maybe it will go away, but if it doesn't, reduce retry attempts
                 console.error('Strange error encountered: ', error);
-                await delay(TIMER * i * 5);
+                await delay(TIMER * i);
                 i++;
             }
         }
@@ -229,16 +229,17 @@ export async function loadPage(url) {
             if (error.response && error.response.status === 525) {
                 if (i < MAX_RETRIES) {
                     console.warn(`Encountered 525 error on attempt ${i}. This is an SSL handshake issue. Retrying...`);
-                    await delay(TIMER * i);
+                    await delay(TIMER * i * 5);
                 }
             } else if (error.response && error.response.status === 429) {
                 if (i < MAX_RETRIES) {
                     console.warn(`Encountered 429 error on attempt ${i}. This is a rate limit. Backing off...`);
-                    await delay(TIMER * i * 5); // Heavier backoff
+                    await delay(TIMER * i * 10); // Heavier backoff
                 }
             } else if (error.response && error.response.status === 404) {
                 throw new NotFoundError(url);
             } else {
+                // This is usually because Impit's request timer ran out
                 // Maybe it will go away, but if it doesn't, reduce retry attempts
                 console.error('Strange error encountered: ', error);
                 await delay(TIMER * i * 5);
@@ -265,7 +266,7 @@ export async function login() {
     for (let i = 1; i <= MAX_RETRIES; i++) {
         try {
             // GET login page to extract authenticity token
-            const loginPage = await client.get(loginUrl, { headers: HTML_HEADERS });
+            const loginPage = await ImpitGet(loginUrl, { headers: HTML_HEADERS });
             const $ = cheerio.load(loginPage.data);
             const authenticityToken = $('input[name="authenticity_token"]').attr('value');
 
@@ -286,13 +287,15 @@ export async function login() {
             const logginSucceed = !$check('form.new_user').length;
             if (!logginSucceed) {
                 console.warn('Login POST completed but session does not appear authenticated.');
+                console.log('Status:', response.status);
+                console.log('HTML:', response.data);
             }
 
             return logginSucceed;
         } catch (error) {
             if (error.response && error.response.status === 525) {
                 console.warn(`Encountered 525 error on attempt ${i}. This is an SSL handshake issue. Retrying...`);
-                await delay(TIMER * i);
+                await delay(TIMER * i * 5);
             }
         }
     }

@@ -6,6 +6,7 @@ import { delay, loadPage, readingData, writingData, saveData } from '../essentia
 const TIMER = 5000;
 
 export async function getHistories(fileName) {
+    console.time(`Parsing cost History`);
     const mode = `HISTORIES`;
     const BATCH_SIZE = 20;
     const buffer = [];
@@ -27,6 +28,7 @@ export async function getHistories(fileName) {
     }
 
     //await writingData(`${fileName}_CLEAN.jsonl`, `${fileName}_${mode}.jsonl`, `withHistories`);
+    console.timeEnd(`Parsing cost History`);
 }
 
 async function process(record) {
